@@ -2,3 +2,4 @@
 .venv/
 pylintrc
 chat_history.txt
+.env
