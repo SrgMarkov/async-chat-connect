@@ -1,17 +1,23 @@
 import argparse
 import asyncio
+import logging
 import os
 
 from dotenv import load_dotenv
 
 
+logger = logging.getLogger("asyncio_chat_writer")
+
+
 async def post_message(host, port, message, user_hash):
     reader, writer = await asyncio.open_connection(host=host, port=port)
+    answer = await reader.readline()
+    logger.debug(answer.decode())
 
     writer.write(f"{user_hash}\n".encode())
     await writer.drain()
     submit_message = await reader.readline()
-    print(submit_message.decode())
+    logger.debug(submit_message.decode())
 
     writer.write(f"{message}\n\n".encode())
     await writer.drain()
@@ -20,6 +26,9 @@ async def post_message(host, port, message, user_hash):
 
 if __name__ == "__main__":
     load_dotenv()
+    logging.basicConfig(
+        format="%(levelname)-3s %(message)s", level=logging.DEBUG
+    )
     command_arguments = argparse.ArgumentParser(
         description="Скрипт подключения к подпольному чату с возможностью отправки сообщений"
     )
