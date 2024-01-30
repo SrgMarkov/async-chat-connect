@@ -21,10 +21,10 @@ HISTORY_FILE={Путь к файлу для сохранения истории 
 
 Запустить скрипт командой
 ```bash
-python3 main.py
+python3 chat_listen.py
 ```
 данные для подключения можно менять из консоли, чтобы получить список доступных комманд введите
 
 ```bash
-python3 main.py --help
+python3 chat_listen.py --help
 ```
