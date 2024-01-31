@@ -3,3 +3,4 @@
 pylintrc
 chat_history.txt
 .env
+account_details.json
