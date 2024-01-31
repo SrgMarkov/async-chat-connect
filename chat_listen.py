@@ -19,8 +19,10 @@ async def get_chat_data(host, port, save_file):
 
 if __name__ == "__main__":
     load_dotenv()
+
     command_arguments = argparse.ArgumentParser(
-        description="Скрипт подключения к подпольному чату с возможностью сохранения переписки"
+        description="Скрипт подключения к подпольному чату с\
+            возможностью сохранения переписки"
     )
     command_arguments.add_argument(
         "--host", help="Укажите хост чата", default=os.getenv("HOST")
