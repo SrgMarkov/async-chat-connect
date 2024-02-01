@@ -11,33 +11,51 @@ from dotenv import load_dotenv
 logger = logging.getLogger("asyncio_chat_writer")
 
 
-async def post_message(host, port, message, user_hash, create):
+async def register(host, port, username):
     reader, writer = await asyncio.open_connection(host=host, port=port)
     answer = await reader.readline()
     logger.debug(answer.decode())
-    if create:
-        writer.write("\n".encode())
-        await writer.drain()
-        await reader.readline()
-        writer.write(f"{create}\n".encode())
-        account_details = await reader.readline()
-        logger.debug(account_details.decode())
-        async with aiofiles.open('account_details.json', mode="w") as account_file:
-            await account_file.write(account_details.decode())
+    writer.write("\n".encode())
+    await writer.drain()
+    await reader.readline()
+    if "\n" in username:
+        logger.debug("Регистрация не удалась. Имя пользователя не корректно")
         return None
+    writer.write(f"{username}\n".encode())
+    account_details = await reader.readline()
+    logger.debug(account_details.decode())
+    async with aiofiles.open("account_details.json", mode="w") as account_file:
+        await account_file.write(account_details.decode())
+        logger.debug("Данные авторизации сохранены в файл account_details.json")
+
+
+async def authorize(reader, writer, user_hash):
+    answer = await reader.readline()
+    logger.debug(answer.decode())
     writer.write(f"{user_hash}\n".encode())
     await writer.drain()
-    submit_message = await reader.readline()
+
+    check_token = await reader.readline()
     assert json.loads("null") is None
-    user_data = json.loads(submit_message.decode())
+    user_data = json.loads(check_token.decode())
     logger.debug(user_data)
+
     if not user_data:
         logger.debug("Неизвестный токен. Проверьте его или зарегистрируйте заново.")
         return None
+    return writer
 
-    writer.write(f"{message}\n\n".encode())
+
+async def submit_message(writer, message):
+    writer.write(f"{' '.join(message)}\n\n".encode())
     await writer.drain()
-    logger.debug(f"Сообщение отправлено: {message}")
+    logger.debug(f"Сообщение отправлено: {' '.join(message)}")
+
+
+async def send_message(host, port, user_hash, message):
+    reader, writer = await asyncio.open_connection(host=host, port=port)
+    await authorize(reader, writer, user_hash)
+    await submit_message(writer, message)
     writer.close()
 
 
@@ -48,14 +66,15 @@ if __name__ == "__main__":
         description="Скрипт подключения к подпольному чату\
             с возможностью отправки сообщений"
     )
-    command_arguments.add_argument("message", help="Введите сообщение для чата")
+    command_arguments.add_argument("message", help="Введите сообщение для чата", nargs='+')
     command_arguments.add_argument(
         "--host", help="Укажите хост чата", default=os.getenv("HOST")
     )
     command_arguments.add_argument(
         "--create",
-        help="Используйте аргумент, если необходимо создать аккаунт. После аргумента введите желаемое имя пользователя",
-        default=None,
+        help="Используйте аргумент, если необходимо создать аккаунт",
+        action='store_true',
+        default=False
     )
     command_arguments.add_argument(
         "--port",
@@ -67,6 +86,12 @@ if __name__ == "__main__":
         "--hash", help="Укажите токен чата", default=os.getenv("ACCOUNT_HASH")
     )
     args = command_arguments.parse_args()
-    asyncio.run(
-        post_message(args.host, args.port, args.message, args.hash, args.create)
-    )
+    try:
+        asyncio.run(
+            register(args.host, args.port, args.message)
+        ) if args.create else asyncio.run(
+            send_message(args.host, args.port, args.hash, args.message)
+        )
+    except OSError as error:
+            logger.error(f"Возникла ошибка: {error}")
+
