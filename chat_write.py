@@ -22,7 +22,7 @@ async def register(host, port, username):
         if "\n" in username:
             logger.debug("Регистрация не удалась. Имя пользователя не корректно")
             return None
-        writer.write(f"{username}\n".encode())
+        writer.write(f"{' '.join(username)}\n".encode())
         account_details = await reader.readline()
         logger.debug(account_details.decode())
         async with aiofiles.open("account_details.json", mode="w") as account_file:
