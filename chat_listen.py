@@ -12,14 +12,20 @@ logger = logging.getLogger("asyncio_chat_listrener")
 
 
 async def get_chat_data(host, port, save_file):
-    reader, writer = await asyncio.open_connection(host=host, port=port)
-    logger.debug(f"Успешное подключение к чату {host}:{port}")
-    current_time = datetime.now().strftime("%d.%m.%Y %H:%M")
-    message = await reader.readline()
-    async with aiofiles.open(save_file, mode="a+") as history_file:
-        await history_file.write(f"[{current_time}] {message.decode()}")
+    try:
+        reader, writer = await asyncio.open_connection(host=host, port=port)
+        current_time = datetime.now().strftime("%d.%m.%Y %H:%M")
+        message = await reader.readline()
+        async with aiofiles.open(save_file, mode="a+") as history_file:
+            await history_file.write(f"[{current_time}] {message.decode()}")
 
-    print(f"[{current_time}] {message.decode()}")
+        print(f"[{current_time}] {message.decode()}")
+    except OSError as e:
+        logger.error(f"Возникла ошибка: {e}")
+        logger.error("Сеанс завершен")
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 
 if __name__ == "__main__":
